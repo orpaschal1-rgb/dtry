@@ -4,6 +4,7 @@ import {
   RecurringRule,
   LongTermGoal,
   DailyLog,
+  ExtraAchievement,
   UserSettings,
   ItemStatus,
   Category,
@@ -258,11 +259,47 @@ export default function App() {
     saveStoredRecurringRules(updated);
   };
 
-  // Daily Log Reflection
+  // Daily Log Reflection & Extra Achievements
   const handleSaveDailyLog = (dateStr: string, reflection: string, rating: number) => {
+    const existing = dailyLogs[dateStr] || { date: dateStr };
     const updated = {
       ...dailyLogs,
-      [dateStr]: { date: dateStr, reflection, rating },
+      [dateStr]: { ...existing, date: dateStr, reflection, rating },
+    };
+    setDailyLogs(updated);
+    saveStoredDailyLogs(updated);
+  };
+
+  const handleAddExtraAchievement = (dateStr: string, title: string, category?: Category) => {
+    const existing = dailyLogs[dateStr] || { date: dateStr };
+    const currentList = existing.extraAchievements || [];
+    const newAch: ExtraAchievement = {
+      id: `ach-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      title,
+      category,
+      createdAt: new Date().toISOString(),
+    };
+    const updated = {
+      ...dailyLogs,
+      [dateStr]: {
+        ...existing,
+        extraAchievements: [...currentList, newAch],
+      },
+    };
+    setDailyLogs(updated);
+    saveStoredDailyLogs(updated);
+  };
+
+  const handleDeleteExtraAchievement = (dateStr: string, achievementId: string) => {
+    const existing = dailyLogs[dateStr];
+    if (!existing || !existing.extraAchievements) return;
+    const updatedList = existing.extraAchievements.filter((a) => a.id !== achievementId);
+    const updated = {
+      ...dailyLogs,
+      [dateStr]: {
+        ...existing,
+        extraAchievements: updatedList,
+      },
     };
     setDailyLogs(updated);
     saveStoredDailyLogs(updated);
@@ -357,6 +394,8 @@ export default function App() {
             onOpenAddModal={openAddDailyModal}
             dailyLog={dailyLogs[currentDateStr]}
             onSaveDailyLog={handleSaveDailyLog}
+            onAddExtraAchievement={handleAddExtraAchievement}
+            onDeleteExtraAchievement={handleDeleteExtraAchievement}
           />
         )}
 

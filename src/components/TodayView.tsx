@@ -11,12 +11,13 @@ import {
   Edit2,
   Shield,
   Award,
+  Trophy,
   AlertTriangle,
   Sparkles,
   MessageSquare,
   Star,
 } from 'lucide-react';
-import { DailyItem, ItemStatus, DailyLog } from '../types';
+import { DailyItem, ItemStatus, DailyLog, Category, ExtraAchievement } from '../types';
 import { formatFriendlyDate, formatDateKey, parseDateKey } from '../lib/storage';
 
 interface TodayViewProps {
@@ -29,6 +30,8 @@ interface TodayViewProps {
   onOpenAddModal: () => void;
   dailyLog?: DailyLog;
   onSaveDailyLog: (dateStr: string, reflection: string, rating: number) => void;
+  onAddExtraAchievement: (dateStr: string, title: string, category?: Category) => void;
+  onDeleteExtraAchievement: (dateStr: string, achievementId: string) => void;
 }
 
 export const TodayView: React.FC<TodayViewProps> = ({
@@ -41,11 +44,15 @@ export const TodayView: React.FC<TodayViewProps> = ({
   onOpenAddModal,
   dailyLog,
   onSaveDailyLog,
+  onAddExtraAchievement,
+  onDeleteExtraAchievement,
 }) => {
   const [failModalItem, setFailModalItem] = useState<DailyItem | null>(null);
   const [failReasonInput, setFailReasonInput] = useState('');
   const [reflectionInput, setReflectionInput] = useState(dailyLog?.reflection || '');
   const [ratingInput, setRatingInput] = useState(dailyLog?.rating || 4);
+  const [extraAchievementTitle, setExtraAchievementTitle] = useState('');
+  const [extraAchievementCategory, setExtraAchievementCategory] = useState<Category>('personal');
 
   // Filter items for currently selected date
   const itemsForDate = dailyItems.filter((i) => i.date === currentDateStr);
@@ -89,6 +96,15 @@ export const TodayView: React.FC<TodayViewProps> = ({
   const handleSaveReflection = (e: React.FormEvent) => {
     e.preventDefault();
     onSaveDailyLog(currentDateStr, reflectionInput, ratingInput);
+  };
+
+  const extraAchievements = dailyLog?.extraAchievements || [];
+
+  const handleAddAchievementSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!extraAchievementTitle.trim()) return;
+    onAddExtraAchievement(currentDateStr, extraAchievementTitle.trim(), extraAchievementCategory);
+    setExtraAchievementTitle('');
   };
 
   return (
@@ -319,6 +335,112 @@ export const TodayView: React.FC<TodayViewProps> = ({
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Extra Achievements Panel */}
+      <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xs space-y-4">
+        <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-amber-500" />
+            <h3 className="font-bold text-zinc-900 dark:text-zinc-100 text-sm">
+              Extra Victories & Achievements
+            </h3>
+          </div>
+          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            {extraAchievements.length} {extraAchievements.length === 1 ? 'Victory' : 'Victories'}
+          </span>
+        </div>
+
+        {/* Input Form for Extra Achievement */}
+        <form onSubmit={handleAddAchievementSubmit} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={extraAchievementTitle}
+              onChange={(e) => setExtraAchievementTitle(e.target.value)}
+              placeholder="Did something extra today? (e.g., Cold plunge, ran extra mile, closed pitch...)"
+              className="w-full pl-3 pr-28 py-2 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+            <select
+              value={extraAchievementCategory}
+              onChange={(e) => setExtraAchievementCategory(e.target.value as Category)}
+              className="absolute right-1 top-1 bottom-1 px-2 text-[10px] font-semibold bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-200 focus:outline-none"
+            >
+              <option value="fitness">Fitness</option>
+              <option value="mindset">Mindset</option>
+              <option value="productivity">Work</option>
+              <option value="finance">Finance</option>
+              <option value="health">Health</option>
+              <option value="personal">Personal</option>
+            </select>
+          </div>
+          <button
+            type="submit"
+            disabled={!extraAchievementTitle.trim()}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 shrink-0 active-bounce"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Victory</span>
+          </button>
+        </form>
+
+        {/* Quick Add Presets */}
+        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+          <span className="text-[10px] font-semibold text-zinc-400">Quick Add:</span>
+          {[
+            { label: '🏋️ Extra Workout', category: 'fitness' },
+            { label: '🧊 Cold Shower', category: 'health' },
+            { label: '📖 Read 30 Mins', category: 'mindset' },
+            { label: '🧘 10m Meditation', category: 'mindset' },
+            { label: '🥗 Clean Meal', category: 'health' },
+            { label: '💰 Saved Money', category: 'finance' },
+          ].map((preset, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => onAddExtraAchievement(currentDateStr, preset.label, preset.category as Category)}
+              className="px-2 py-1 rounded-lg text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-amber-100 dark:hover:bg-amber-950/60 hover:text-amber-800 dark:hover:text-amber-300 transition-colors active-bounce"
+            >
+              + {preset.label}
+            </button>
+          ))}
+        </div>
+
+        {/* List of Extra Achievements */}
+        {extraAchievements.length > 0 ? (
+          <div className="space-y-2 pt-1">
+            {extraAchievements.map((ach) => (
+              <div
+                key={ach.id}
+                className="flex items-center justify-between p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/40 text-xs transition-all hover:border-amber-300 dark:hover:border-amber-700"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-1 rounded-lg bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+                    <Trophy className="w-4 h-4 fill-amber-400/20" />
+                  </div>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">{ach.title}</span>
+                  {ach.category && (
+                    <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-200/60 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 shrink-0">
+                      {ach.category}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onDeleteExtraAchievement(currentDateStr, ach.id)}
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
+                  title="Delete victory"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-zinc-400 dark:text-zinc-500 italic text-center py-2">
+            No extra victories logged for today yet. Push yourself further and log bonus wins!
+          </p>
+        )}
       </div>
 
       {/* Fail Prompt Modal */}

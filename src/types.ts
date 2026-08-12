@@ -48,10 +48,18 @@ export interface LongTermGoal {
   createdAt: string;
 }
 
+export interface ExtraAchievement {
+  id: string;
+  title: string;
+  category?: Category;
+  createdAt: string;
+}
+
 export interface DailyLog {
   date: string; // YYYY-MM-DD
   reflection?: string;
   rating?: number; // 1 to 5
+  extraAchievements?: ExtraAchievement[];
 }
 
 export interface UserSettings {
