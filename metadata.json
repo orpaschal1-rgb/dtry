@@ -1,0 +1,6 @@
+{
+  "name": "Daily Goals & Rules",
+  "description": "Personal daily goals and rules tracker with dark mode, long-term targets, and completion history.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
