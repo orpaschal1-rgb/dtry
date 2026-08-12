@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -16,6 +16,7 @@ import {
   Sparkles,
   MessageSquare,
   Star,
+  Check,
 } from 'lucide-react';
 import { DailyItem, ItemStatus, DailyLog, Category, ExtraAchievement } from '../types';
 import { formatFriendlyDate, formatDateKey, parseDateKey } from '../lib/storage';
@@ -51,8 +52,16 @@ export const TodayView: React.FC<TodayViewProps> = ({
   const [failReasonInput, setFailReasonInput] = useState('');
   const [reflectionInput, setReflectionInput] = useState(dailyLog?.reflection || '');
   const [ratingInput, setRatingInput] = useState(dailyLog?.rating || 4);
+  const [isSavedFeedback, setIsSavedFeedback] = useState(false);
   const [extraAchievementTitle, setExtraAchievementTitle] = useState('');
   const [extraAchievementCategory, setExtraAchievementCategory] = useState<Category>('personal');
+
+  // Sync state whenever the date or underlying dailyLog updates
+  useEffect(() => {
+    setReflectionInput(dailyLog?.reflection || '');
+    setRatingInput(dailyLog?.rating || 4);
+    setIsSavedFeedback(false);
+  }, [currentDateStr, dailyLog?.reflection, dailyLog?.rating]);
 
   // Filter items for currently selected date
   const itemsForDate = dailyItems.filter((i) => i.date === currentDateStr);
@@ -93,9 +102,18 @@ export const TodayView: React.FC<TodayViewProps> = ({
     }
   };
 
-  const handleSaveReflection = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveReflection = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     onSaveDailyLog(currentDateStr, reflectionInput, ratingInput);
+    setIsSavedFeedback(true);
+    setTimeout(() => setIsSavedFeedback(false), 3000);
+  };
+
+  const handleRatingChange = (newRating: number) => {
+    setRatingInput(newRating);
+    onSaveDailyLog(currentDateStr, reflectionInput, newRating);
+    setIsSavedFeedback(true);
+    setTimeout(() => setIsSavedFeedback(false), 3000);
   };
 
   const extraAchievements = dailyLog?.extraAchievements || [];
@@ -286,52 +304,68 @@ export const TodayView: React.FC<TodayViewProps> = ({
 
       {/* Daily Reflection & Notes */}
       <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xs space-y-4">
-        <div className="flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
-          <MessageSquare className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-          <h3 className="font-bold text-zinc-900 dark:text-zinc-100 text-sm">
-            Daily Reflection & Accountability Log
-          </h3>
+        <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-emerald-500" />
+            <h3 className="font-bold text-zinc-900 dark:text-zinc-100 text-sm">
+              Daily Reflection & Accountability Log
+            </h3>
+          </div>
+          {isSavedFeedback && (
+            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 animate-in fade-in">
+              <Check className="w-3.5 h-3.5" />
+              Saved!
+            </span>
+          )}
         </div>
 
         <form onSubmit={handleSaveReflection} className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-              Day Rating:
-            </span>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  type="button"
-                  key={star}
-                  onClick={() => setRatingInput(star)}
-                  className="p-1 hover:scale-110 transition-transform"
-                >
-                  <Star
-                    className={`w-4 h-4 ${
-                      star <= ratingInput
-                        ? 'fill-amber-400 text-amber-400'
-                        : 'text-zinc-300 dark:text-zinc-700'
-                    }`}
-                  />
-                </button>
-              ))}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+                Day Rating:
+              </span>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    type="button"
+                    key={star}
+                    onClick={() => handleRatingChange(star)}
+                    className="p-1 hover:scale-125 active-bounce transition-transform"
+                    title={`Rate day ${star}/5`}
+                  >
+                    <Star
+                      className={`w-4 h-4 ${
+                        star <= ratingInput
+                          ? 'fill-amber-400 text-amber-400'
+                          : 'text-zinc-300 dark:text-zinc-700'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           <textarea
-            rows={2}
+            rows={3}
             value={reflectionInput}
             onChange={(e) => setReflectionInput(e.target.value)}
-            placeholder="How did today go? What led to any failures or wins? (Auto-saved or press Save)"
-            className="w-full p-3 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 resize-none"
+            onBlur={() => handleSaveReflection()}
+            placeholder="How did today go? What led to any failures or wins?"
+            className="w-full p-3 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
           />
 
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[10px] text-zinc-400">
+              Auto-saves on rating change or blur
+            </span>
             <button
               type="submit"
-              className="px-4 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-semibold text-xs rounded-xl transition-colors"
+              className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 active-bounce"
             >
-              Save Reflection Log
+              <Check className="w-3.5 h-3.5 text-emerald-400 dark:text-emerald-600" />
+              <span>Save Reflection Log</span>
             </button>
           </div>
         </form>
