@@ -223,6 +223,52 @@ export function saveStoredDailyLogs(logs: Record<string, DailyLog>): void {
   }
 }
 
+export function calculateCurrentStreak(dailyItems: DailyItem[] = getStoredDailyItems()): number {
+  const itemsByDate: Record<string, DailyItem[]> = {};
+  dailyItems.forEach((item) => {
+    if (!itemsByDate[item.date]) itemsByDate[item.date] = [];
+    itemsByDate[item.date].push(item);
+  });
+
+  let streak = 0;
+  const now = new Date();
+  const todayKey = formatDateKey(now);
+
+  // Check today first
+  const todayItems = itemsByDate[todayKey] || [];
+  const todayCompleted = todayItems.filter((i) => i.status === 'completed').length;
+  const todayFailed = todayItems.filter((i) => i.status === 'failed').length;
+
+  if (todayCompleted > 0 && todayFailed === 0) {
+    streak += 1;
+  }
+
+  // Count backwards from yesterday
+  let checkDate = new Date(now.valueOf() - 86400000);
+  while (true) {
+    const key = formatDateKey(checkDate);
+    const dayItems = itemsByDate[key];
+
+    if (!dayItems || dayItems.length === 0) {
+      break;
+    }
+
+    const completed = dayItems.filter((i) => i.status === 'completed').length;
+    const failed = dayItems.filter((i) => i.status === 'failed').length;
+
+    if (completed > 0 && failed === 0) {
+      streak += 1;
+      checkDate = new Date(checkDate.valueOf() - 86400000);
+    } else {
+      break;
+    }
+  }
+
+  // Fallback to saved setting streak if user has a custom streak set higher
+  const settings = getStoredSettings();
+  return Math.max(streak, settings.streakCount || 0);
+}
+
 export function getStoredSettings(): UserSettings {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);

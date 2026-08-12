@@ -21,6 +21,7 @@ import {
   getStoredSettings,
   saveStoredSettings,
   ensureTodayRulesPopulated,
+  calculateCurrentStreak,
   exportAllDataJSON,
   importAllDataJSON,
   resetAllDataToDefault,
@@ -330,6 +331,8 @@ export default function App() {
     return success;
   };
 
+  const liveStreak = calculateCurrentStreak(dailyItems);
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-200 font-sans selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-100 dark:selection:text-zinc-950">
       {/* Sticky Header */}
@@ -338,7 +341,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         theme={settings.theme}
         toggleTheme={handleToggleTheme}
-        streakCount={settings.streakCount}
+        streakCount={liveStreak}
       />
 
       {/* Main Content Area */}
@@ -377,7 +380,7 @@ export default function App() {
               setCurrentDateStr(dateStr);
               setActiveTab('today');
             }}
-            streakCount={settings.streakCount}
+            streakCount={liveStreak}
           />
         )}
 
